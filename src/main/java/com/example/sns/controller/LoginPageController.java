@@ -1,14 +1,16 @@
 package com.example.sns.controller;
 
+import com.example.sns.auth.JwtUtil;
 import com.example.sns.entity.User;
 import com.example.sns.repository.UserRepository;
-import com.example.sns.auth.JwtUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 @RequiredArgsConstructor
@@ -44,10 +46,24 @@ public class LoginPageController {
             return "login";
         }
 
-        String accessToken = jwtUtil.createAccessToken(user.getId(), user.getEmail());
+        String accessToken = jwtUtil.createAccessToken(
+                user.getId(),
+                user.getEmail()
+        );
 
         Cookie cookie = new Cookie("accessToken", accessToken);
+
+        // JavaScript에서 쿠키에 접근하지 못하도록 설정
         cookie.setHttpOnly(true);
+
+        // 사이트 내 대부분의 요청에 쿠키를 전송하고,
+        // 외부 사이트에서 발생한 위험한 요청에는 쿠키 전송을 제한
+        cookie.setAttribute("SameSite", "Lax");
+
+        // 현재는 HTTP 환경이므로 false
+        // HTTPS를 적용한 뒤에는 true로 변경
+        cookie.setSecure(false);
+
         cookie.setPath("/");
         cookie.setMaxAge(60 * 60);
 
