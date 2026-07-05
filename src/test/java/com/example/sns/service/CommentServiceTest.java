@@ -49,200 +49,404 @@ class CommentServiceTest {
     @DisplayName("댓글 작성에 성공한다")
     void createComment_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
-        ReflectionTestUtils.setField(user, "id", 1L);
+        Long userId = 1L;
+        Long postId = 1L;
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
-        ReflectionTestUtils.setField(post, "id", 1L);
-
-        CommentCreateRequest request = new CommentCreateRequest(
-                1L,
-                1L,
-                "첫 번째 댓글입니다."
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
         );
+        ReflectionTestUtils.setField(user, "id", userId);
 
-        given(userRepository.findById(1L))
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
+        ReflectionTestUtils.setField(post, "id", postId);
+
+        CommentCreateRequest request =
+                new CommentCreateRequest(
+                        postId,
+                        "첫 번째 댓글입니다."
+                );
+
+        given(userRepository.findById(userId))
                 .willReturn(Optional.of(user));
 
-        given(postRepository.findById(1L))
+        given(postRepository.findById(postId))
                 .willReturn(Optional.of(post));
 
         given(commentRepository.save(any(Comment.class)))
                 .willAnswer(invocation -> {
-                    Comment comment = invocation.getArgument(0);
-                    ReflectionTestUtils.setField(comment, "id", 1L);
+                    Comment comment =
+                            invocation.getArgument(0);
+
+                    ReflectionTestUtils.setField(
+                            comment,
+                            "id",
+                            1L
+                    );
+
                     return comment;
                 });
 
         // When
-        CommentResponse response = commentService.createComment(request);
+        CommentResponse response =
+                commentService.createComment(
+                        userId,
+                        request
+                );
 
         // Then
         assertAll(
-                () -> assertEquals(1L, response.commentId()),
-                () -> assertEquals(1L, response.postId()),
-                () -> assertEquals(1L, response.writerId()),
-                () -> assertEquals("테스트유저", response.writerNickname()),
-                () -> assertEquals("첫 번째 댓글입니다.", response.content())
+                () -> assertEquals(
+                        1L,
+                        response.commentId()
+                ),
+                () -> assertEquals(
+                        postId,
+                        response.postId()
+                ),
+                () -> assertEquals(
+                        userId,
+                        response.writerId()
+                ),
+                () -> assertEquals(
+                        "테스트유저",
+                        response.writerNickname()
+                ),
+                () -> assertEquals(
+                        "첫 번째 댓글입니다.",
+                        response.content()
+                )
         );
 
-        verify(userRepository, times(1)).findById(1L);
-        verify(postRepository, times(1)).findById(1L);
-        verify(commentRepository, times(1)).save(any(Comment.class));
+        verify(userRepository, times(1))
+                .findById(userId);
+
+        verify(postRepository, times(1))
+                .findById(postId);
+
+        verify(commentRepository, times(1))
+                .save(any(Comment.class));
     }
 
     @Test
     @DisplayName("존재하지 않는 사용자로 댓글 작성 시 예외가 발생한다")
     void createComment_userNotFound() {
         // Given
-        CommentCreateRequest request = new CommentCreateRequest(
-                999L,
-                1L,
-                "댓글입니다."
-        );
+        Long userId = 999L;
+        Long postId = 1L;
 
-        given(userRepository.findById(999L))
+        CommentCreateRequest request =
+                new CommentCreateRequest(
+                        postId,
+                        "댓글입니다."
+                );
+
+        given(userRepository.findById(userId))
                 .willReturn(Optional.empty());
 
         // When & Then
         CustomException exception = assertThrows(
                 CustomException.class,
-                () -> commentService.createComment(request)
+                () -> commentService.createComment(
+                        userId,
+                        request
+                )
         );
 
-        assertEquals("존재하지 않는 사용자입니다.", exception.getMessage());
+        assertEquals(
+                "존재하지 않는 사용자입니다.",
+                exception.getMessage()
+        );
 
-        verify(userRepository, times(1)).findById(999L);
-        verify(postRepository, never()).findById(any());
-        verify(commentRepository, never()).save(any());
+        verify(userRepository, times(1))
+                .findById(userId);
+
+        verify(postRepository, never())
+                .findById(any());
+
+        verify(commentRepository, never())
+                .save(any());
     }
 
     @Test
     @DisplayName("존재하지 않는 게시글에 댓글 작성 시 예외가 발생한다")
     void createComment_postNotFound() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
-        ReflectionTestUtils.setField(user, "id", 1L);
+        Long userId = 1L;
+        Long postId = 999L;
 
-        CommentCreateRequest request = new CommentCreateRequest(
-                1L,
-                999L,
-                "댓글입니다."
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
         );
+        ReflectionTestUtils.setField(user, "id", userId);
 
-        given(userRepository.findById(1L))
+        CommentCreateRequest request =
+                new CommentCreateRequest(
+                        postId,
+                        "댓글입니다."
+                );
+
+        given(userRepository.findById(userId))
                 .willReturn(Optional.of(user));
 
-        given(postRepository.findById(999L))
+        given(postRepository.findById(postId))
                 .willReturn(Optional.empty());
 
         // When & Then
         CustomException exception = assertThrows(
                 CustomException.class,
-                () -> commentService.createComment(request)
+                () -> commentService.createComment(
+                        userId,
+                        request
+                )
         );
 
-        assertEquals("존재하지 않는 게시글입니다.", exception.getMessage());
+        assertEquals(
+                "존재하지 않는 게시글입니다.",
+                exception.getMessage()
+        );
 
-        verify(userRepository, times(1)).findById(1L);
-        verify(postRepository, times(1)).findById(999L);
-        verify(commentRepository, never()).save(any());
+        verify(userRepository, times(1))
+                .findById(userId);
+
+        verify(postRepository, times(1))
+                .findById(postId);
+
+        verify(commentRepository, never())
+                .save(any());
     }
 
     @Test
     @DisplayName("댓글 전체 조회에 성공한다")
     void getComments_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
         ReflectionTestUtils.setField(user, "id", 1L);
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
         ReflectionTestUtils.setField(post, "id", 1L);
 
-        Comment comment1 = Comment.create("첫 번째 댓글", user, post);
-        ReflectionTestUtils.setField(comment1, "id", 1L);
+        Comment comment1 =
+                Comment.create(
+                        "첫 번째 댓글",
+                        user,
+                        post
+                );
+        ReflectionTestUtils.setField(
+                comment1,
+                "id",
+                1L
+        );
 
-        Comment comment2 = Comment.create("두 번째 댓글", user, post);
-        ReflectionTestUtils.setField(comment2, "id", 2L);
+        Comment comment2 =
+                Comment.create(
+                        "두 번째 댓글",
+                        user,
+                        post
+                );
+        ReflectionTestUtils.setField(
+                comment2,
+                "id",
+                2L
+        );
 
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Comment> commentPage = new PageImpl<>(List.of(comment1, comment2), pageable, 2);
+        Pageable pageable =
+                PageRequest.of(0, 10);
+
+        Page<Comment> commentPage =
+                new PageImpl<>(
+                        List.of(comment1, comment2),
+                        pageable,
+                        2
+                );
 
         given(commentRepository.findAll(pageable))
                 .willReturn(commentPage);
 
         // When
-        Page<CommentResponse> responses = commentService.getComments(pageable);
+        Page<CommentResponse> responses =
+                commentService.getComments(pageable);
 
         // Then
-        assertEquals(2, responses.getContent().size());
-        assertEquals("첫 번째 댓글", responses.getContent().get(0).content());
-        assertEquals("두 번째 댓글", responses.getContent().get(1).content());
-        assertEquals(2, responses.getTotalElements());
-        assertEquals(1, responses.getTotalPages());
+        assertEquals(
+                2,
+                responses.getContent().size()
+        );
 
-        verify(commentRepository, times(1)).findAll(pageable);
+        assertEquals(
+                "첫 번째 댓글",
+                responses.getContent().get(0).content()
+        );
+
+        assertEquals(
+                "두 번째 댓글",
+                responses.getContent().get(1).content()
+        );
+
+        assertEquals(
+                2,
+                responses.getTotalElements()
+        );
+
+        assertEquals(
+                1,
+                responses.getTotalPages()
+        );
+
+        verify(commentRepository, times(1))
+                .findAll(pageable);
     }
 
     @Test
     @DisplayName("특정 게시글의 댓글 조회에 성공한다")
     void getCommentsByPost_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
+        Long postId = 1L;
+
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
         ReflectionTestUtils.setField(user, "id", 1L);
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
-        ReflectionTestUtils.setField(post, "id", 1L);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
+        ReflectionTestUtils.setField(post, "id", postId);
 
-        Comment comment = Comment.create("게시글에 달린 댓글", user, post);
-        ReflectionTestUtils.setField(comment, "id", 1L);
+        Comment comment =
+                Comment.create(
+                        "게시글에 달린 댓글",
+                        user,
+                        post
+                );
+        ReflectionTestUtils.setField(
+                comment,
+                "id",
+                1L
+        );
 
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Comment> commentPage = new PageImpl<>(List.of(comment), pageable, 1);
+        Pageable pageable =
+                PageRequest.of(0, 10);
 
-        given(postRepository.findById(1L))
+        Page<Comment> commentPage =
+                new PageImpl<>(
+                        List.of(comment),
+                        pageable,
+                        1
+                );
+
+        given(postRepository.findById(postId))
                 .willReturn(Optional.of(post));
 
-        given(commentRepository.findByPostId(1L, pageable))
-                .willReturn(commentPage);
+        given(commentRepository.findByPostId(
+                postId,
+                pageable
+        )).willReturn(commentPage);
 
         // When
-        Page<CommentResponse> responses = commentService.getCommentsByPost(1L, pageable);
+        Page<CommentResponse> responses =
+                commentService.getCommentsByPost(
+                        postId,
+                        pageable
+                );
 
         // Then
-        assertEquals(1, responses.getContent().size());
-        assertEquals("게시글에 달린 댓글", responses.getContent().get(0).content());
-        assertEquals(1, responses.getTotalElements());
-        assertEquals(1, responses.getTotalPages());
+        assertEquals(
+                1,
+                responses.getContent().size()
+        );
 
-        verify(postRepository, times(1)).findById(1L);
-        verify(commentRepository, times(1)).findByPostId(1L, pageable);
+        assertEquals(
+                "게시글에 달린 댓글",
+                responses.getContent().get(0).content()
+        );
+
+        assertEquals(
+                1,
+                responses.getTotalElements()
+        );
+
+        assertEquals(
+                1,
+                responses.getTotalPages()
+        );
+
+        verify(postRepository, times(1))
+                .findById(postId);
+
+        verify(commentRepository, times(1))
+                .findByPostId(postId, pageable);
     }
 
     @Test
     @DisplayName("댓글 단건 조회에 성공한다")
     void getComment_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
         ReflectionTestUtils.setField(user, "id", 1L);
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
         ReflectionTestUtils.setField(post, "id", 1L);
 
-        Comment comment = Comment.create("댓글입니다.", user, post);
-        ReflectionTestUtils.setField(comment, "id", 1L);
+        Comment comment =
+                Comment.create(
+                        "댓글입니다.",
+                        user,
+                        post
+                );
+        ReflectionTestUtils.setField(
+                comment,
+                "id",
+                1L
+        );
 
         given(commentRepository.findById(1L))
                 .willReturn(Optional.of(comment));
 
         // When
-        CommentResponse response = commentService.getComment(1L);
+        CommentResponse response =
+                commentService.getComment(1L);
 
         // Then
-        assertEquals(1L, response.commentId());
-        assertEquals("댓글입니다.", response.content());
+        assertEquals(
+                1L,
+                response.commentId()
+        );
 
-        verify(commentRepository, times(1)).findById(1L);
+        assertEquals(
+                "댓글입니다.",
+                response.content()
+        );
+
+        verify(commentRepository, times(1))
+                .findById(1L);
     }
 
     @Test
@@ -258,50 +462,99 @@ class CommentServiceTest {
                 () -> commentService.getComment(999L)
         );
 
-        assertEquals("존재하지 않는 댓글입니다.", exception.getMessage());
+        assertEquals(
+                "존재하지 않는 댓글입니다.",
+                exception.getMessage()
+        );
 
-        verify(commentRepository, times(1)).findById(999L);
+        verify(commentRepository, times(1))
+                .findById(999L);
     }
 
     @Test
     @DisplayName("댓글 수정에 성공한다")
     void updateComment_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
         ReflectionTestUtils.setField(user, "id", 1L);
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
         ReflectionTestUtils.setField(post, "id", 1L);
 
-        Comment comment = Comment.create("기존 댓글", user, post);
-        ReflectionTestUtils.setField(comment, "id", 1L);
+        Comment comment =
+                Comment.create(
+                        "기존 댓글",
+                        user,
+                        post
+                );
+        ReflectionTestUtils.setField(
+                comment,
+                "id",
+                1L
+        );
 
-        CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글");
+        CommentUpdateRequest request =
+                new CommentUpdateRequest(
+                        "수정된 댓글"
+                );
 
         given(commentRepository.findById(1L))
                 .willReturn(Optional.of(comment));
 
         // When
-        CommentResponse response = commentService.updateComment(1L, request);
+        CommentResponse response =
+                commentService.updateComment(
+                        1L,
+                        request
+                );
 
         // Then
-        assertEquals("수정된 댓글", response.content());
+        assertEquals(
+                "수정된 댓글",
+                response.content()
+        );
 
-        verify(commentRepository, times(1)).findById(1L);
+        verify(commentRepository, times(1))
+                .findById(1L);
     }
 
     @Test
     @DisplayName("댓글 삭제에 성공한다")
     void deleteComment_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
         ReflectionTestUtils.setField(user, "id", 1L);
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
         ReflectionTestUtils.setField(post, "id", 1L);
 
-        Comment comment = Comment.create("삭제할 댓글", user, post);
-        ReflectionTestUtils.setField(comment, "id", 1L);
+        Comment comment =
+                Comment.create(
+                        "삭제할 댓글",
+                        user,
+                        post
+                );
+        ReflectionTestUtils.setField(
+                comment,
+                "id",
+                1L
+        );
 
         given(commentRepository.findById(1L))
                 .willReturn(Optional.of(comment));
@@ -310,7 +563,10 @@ class CommentServiceTest {
         commentService.deleteComment(1L);
 
         // Then
-        verify(commentRepository, times(1)).findById(1L);
-        verify(commentRepository, times(1)).delete(comment);
+        verify(commentRepository, times(1))
+                .findById(1L);
+
+        verify(commentRepository, times(1))
+                .delete(comment);
     }
 }

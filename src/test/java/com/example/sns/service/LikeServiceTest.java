@@ -45,21 +45,33 @@ class LikeServiceTest {
     @DisplayName("좋아요 생성에 성공한다")
     void createLike_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
-        ReflectionTestUtils.setField(user, "id", 1L);
+        Long userId = 1L;
+        Long postId = 1L;
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
-        ReflectionTestUtils.setField(post, "id", 1L);
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
+        ReflectionTestUtils.setField(user, "id", userId);
 
-        LikeCreateRequest request = new LikeCreateRequest(1L, 1L);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
+        ReflectionTestUtils.setField(post, "id", postId);
 
-        given(userRepository.findById(1L))
+        LikeCreateRequest request =
+                new LikeCreateRequest(postId);
+
+        given(userRepository.findById(userId))
                 .willReturn(Optional.of(user));
 
-        given(postRepository.findById(1L))
+        given(postRepository.findById(postId))
                 .willReturn(Optional.of(post));
 
-        given(likeRepository.existsByUserIdAndPostId(1L, 1L))
+        given(likeRepository.existsByUserIdAndPostId(userId, postId))
                 .willReturn(false);
 
         given(likeRepository.save(any(Like.class)))
@@ -70,112 +82,193 @@ class LikeServiceTest {
                 });
 
         // When
-        LikeResponse response = likeService.createLike(request);
+        LikeResponse response =
+                likeService.createLike(userId, request);
 
         // Then
         assertAll(
                 () -> assertEquals(1L, response.likeId()),
-                () -> assertEquals(1L, response.postId()),
-                () -> assertEquals(1L, response.userId()),
-                () -> assertEquals("테스트유저", response.userNickname())
+                () -> assertEquals(postId, response.postId()),
+                () -> assertEquals(userId, response.userId()),
+                () -> assertEquals(
+                        "테스트유저",
+                        response.userNickname()
+                )
         );
 
-        verify(userRepository, times(1)).findById(1L);
-        verify(postRepository, times(1)).findById(1L);
-        verify(likeRepository, times(1)).existsByUserIdAndPostId(1L, 1L);
-        verify(likeRepository, times(1)).save(any(Like.class));
+        verify(userRepository, times(1))
+                .findById(userId);
+
+        verify(postRepository, times(1))
+                .findById(postId);
+
+        verify(likeRepository, times(1))
+                .existsByUserIdAndPostId(userId, postId);
+
+        verify(likeRepository, times(1))
+                .save(any(Like.class));
     }
 
     @Test
     @DisplayName("이미 좋아요를 누른 게시글이면 예외가 발생한다")
     void createLike_alreadyLiked() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
-        ReflectionTestUtils.setField(user, "id", 1L);
+        Long userId = 1L;
+        Long postId = 1L;
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
-        ReflectionTestUtils.setField(post, "id", 1L);
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
+        ReflectionTestUtils.setField(user, "id", userId);
 
-        LikeCreateRequest request = new LikeCreateRequest(1L, 1L);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
+        ReflectionTestUtils.setField(post, "id", postId);
 
-        given(userRepository.findById(1L))
+        LikeCreateRequest request =
+                new LikeCreateRequest(postId);
+
+        given(userRepository.findById(userId))
                 .willReturn(Optional.of(user));
 
-        given(postRepository.findById(1L))
+        given(postRepository.findById(postId))
                 .willReturn(Optional.of(post));
 
-        given(likeRepository.existsByUserIdAndPostId(1L, 1L))
+        given(likeRepository.existsByUserIdAndPostId(userId, postId))
                 .willReturn(true);
 
         // When & Then
         CustomException exception = assertThrows(
                 CustomException.class,
-                () -> likeService.createLike(request)
+                () -> likeService.createLike(
+                        userId,
+                        request
+                )
         );
 
-        assertEquals("이미 좋아요를 누른 게시글입니다.", exception.getMessage());
+        assertEquals(
+                "이미 좋아요를 누른 게시글입니다.",
+                exception.getMessage()
+        );
 
-        verify(likeRepository, never()).save(any());
+        verify(userRepository, times(1))
+                .findById(userId);
+
+        verify(postRepository, times(1))
+                .findById(postId);
+
+        verify(likeRepository, times(1))
+                .existsByUserIdAndPostId(userId, postId);
+
+        verify(likeRepository, never())
+                .save(any());
     }
 
     @Test
     @DisplayName("존재하지 않는 사용자로 좋아요 생성 시 예외가 발생한다")
     void createLike_userNotFound() {
         // Given
-        LikeCreateRequest request = new LikeCreateRequest(999L, 1L);
+        Long userId = 999L;
+        Long postId = 1L;
 
-        given(userRepository.findById(999L))
+        LikeCreateRequest request =
+                new LikeCreateRequest(postId);
+
+        given(userRepository.findById(userId))
                 .willReturn(Optional.empty());
 
         // When & Then
         CustomException exception = assertThrows(
                 CustomException.class,
-                () -> likeService.createLike(request)
+                () -> likeService.createLike(
+                        userId,
+                        request
+                )
         );
 
-        assertEquals("존재하지 않는 사용자입니다.", exception.getMessage());
+        assertEquals(
+                "존재하지 않는 사용자입니다.",
+                exception.getMessage()
+        );
 
-        verify(userRepository, times(1)).findById(999L);
-        verify(postRepository, never()).findById(any());
-        verify(likeRepository, never()).save(any());
+        verify(userRepository, times(1))
+                .findById(userId);
+
+        verify(postRepository, never())
+                .findById(any());
+
+        verify(likeRepository, never())
+                .save(any());
     }
 
     @Test
     @DisplayName("존재하지 않는 게시글로 좋아요 생성 시 예외가 발생한다")
     void createLike_postNotFound() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
-        ReflectionTestUtils.setField(user, "id", 1L);
+        Long userId = 1L;
+        Long postId = 999L;
 
-        LikeCreateRequest request = new LikeCreateRequest(1L, 999L);
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
+        ReflectionTestUtils.setField(user, "id", userId);
 
-        given(userRepository.findById(1L))
+        LikeCreateRequest request =
+                new LikeCreateRequest(postId);
+
+        given(userRepository.findById(userId))
                 .willReturn(Optional.of(user));
 
-        given(postRepository.findById(999L))
+        given(postRepository.findById(postId))
                 .willReturn(Optional.empty());
 
         // When & Then
         CustomException exception = assertThrows(
                 CustomException.class,
-                () -> likeService.createLike(request)
+                () -> likeService.createLike(
+                        userId,
+                        request
+                )
         );
 
-        assertEquals("존재하지 않는 게시글입니다.", exception.getMessage());
+        assertEquals(
+                "존재하지 않는 게시글입니다.",
+                exception.getMessage()
+        );
 
-        verify(userRepository, times(1)).findById(1L);
-        verify(postRepository, times(1)).findById(999L);
-        verify(likeRepository, never()).save(any());
+        verify(userRepository, times(1))
+                .findById(userId);
+
+        verify(postRepository, times(1))
+                .findById(postId);
+
+        verify(likeRepository, never())
+                .save(any());
     }
 
     @Test
     @DisplayName("좋아요 전체 조회에 성공한다")
     void getLikes_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
         ReflectionTestUtils.setField(user, "id", 1L);
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
         ReflectionTestUtils.setField(post, "id", 1L);
 
         Like like1 = Like.create(user, post);
@@ -188,121 +281,187 @@ class LikeServiceTest {
                 .willReturn(List.of(like1, like2));
 
         // When
-        List<LikeResponse> responses = likeService.getLikes();
+        List<LikeResponse> responses =
+                likeService.getLikes();
 
         // Then
         assertEquals(2, responses.size());
         assertEquals(1L, responses.get(0).likeId());
         assertEquals(2L, responses.get(1).likeId());
 
-        verify(likeRepository, times(1)).findAll();
+        verify(likeRepository, times(1))
+                .findAll();
     }
 
     @Test
     @DisplayName("사용자와 게시글 기준으로 좋아요 단건 조회에 성공한다")
     void getLikeByUserAndPost_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
-        ReflectionTestUtils.setField(user, "id", 1L);
+        Long userId = 1L;
+        Long postId = 1L;
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
-        ReflectionTestUtils.setField(post, "id", 1L);
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
+        ReflectionTestUtils.setField(post, "id", postId);
 
         Like like = Like.create(user, post);
         ReflectionTestUtils.setField(like, "id", 1L);
 
-        given(likeRepository.findByUserIdAndPostId(1L, 1L))
+        given(likeRepository.findByUserIdAndPostId(userId, postId))
                 .willReturn(Optional.of(like));
 
         // When
-        LikeResponse response = likeService.getLikeByUserAndPost(1L, 1L);
+        LikeResponse response =
+                likeService.getLikeByUserAndPost(
+                        userId,
+                        postId
+                );
 
         // Then
         assertEquals(1L, response.likeId());
-        assertEquals(1L, response.userId());
-        assertEquals(1L, response.postId());
+        assertEquals(userId, response.userId());
+        assertEquals(postId, response.postId());
 
-        verify(likeRepository, times(1)).findByUserIdAndPostId(1L, 1L);
+        verify(likeRepository, times(1))
+                .findByUserIdAndPostId(userId, postId);
     }
 
     @Test
     @DisplayName("특정 게시글 좋아요 목록 조회에 성공한다")
     void getLikesByPost_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
+        Long postId = 1L;
+
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
         ReflectionTestUtils.setField(user, "id", 1L);
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
-        ReflectionTestUtils.setField(post, "id", 1L);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
+        ReflectionTestUtils.setField(post, "id", postId);
 
         Like like = Like.create(user, post);
         ReflectionTestUtils.setField(like, "id", 1L);
 
-        given(postRepository.findById(1L))
+        given(postRepository.findById(postId))
                 .willReturn(Optional.of(post));
 
-        given(likeRepository.findByPostId(1L))
+        given(likeRepository.findByPostId(postId))
                 .willReturn(List.of(like));
 
         // When
-        List<LikeResponse> responses = likeService.getLikesByPost(1L);
+        List<LikeResponse> responses =
+                likeService.getLikesByPost(postId);
 
         // Then
         assertEquals(1, responses.size());
-        assertEquals(1L, responses.get(0).postId());
+        assertEquals(
+                postId,
+                responses.get(0).postId()
+        );
 
-        verify(postRepository, times(1)).findById(1L);
-        verify(likeRepository, times(1)).findByPostId(1L);
+        verify(postRepository, times(1))
+                .findById(postId);
+
+        verify(likeRepository, times(1))
+                .findByPostId(postId);
     }
 
     @Test
     @DisplayName("특정 게시글 좋아요 개수 조회에 성공한다")
     void getLikeCountByPost_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
+        Long postId = 1L;
+
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
         ReflectionTestUtils.setField(user, "id", 1L);
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
-        ReflectionTestUtils.setField(post, "id", 1L);
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
+        ReflectionTestUtils.setField(post, "id", postId);
 
-        given(postRepository.findById(1L))
+        given(postRepository.findById(postId))
                 .willReturn(Optional.of(post));
 
-        given(likeRepository.countByPostId(1L))
+        given(likeRepository.countByPostId(postId))
                 .willReturn(3L);
 
         // When
-        LikeCountResponse response = likeService.getLikeCountByPost(1L);
+        LikeCountResponse response =
+                likeService.getLikeCountByPost(postId);
 
         // Then
-        assertEquals(1L, response.postId());
+        assertEquals(postId, response.postId());
         assertEquals(3L, response.likeCount());
 
-        verify(postRepository, times(1)).findById(1L);
-        verify(likeRepository, times(1)).countByPostId(1L);
+        verify(postRepository, times(1))
+                .findById(postId);
+
+        verify(likeRepository, times(1))
+                .countByPostId(postId);
     }
 
     @Test
     @DisplayName("사용자와 게시글 기준으로 좋아요 삭제에 성공한다")
     void deleteLikeByUserAndPost_success() {
         // Given
-        User user = User.create("test@test.com", "테스트유저");
-        ReflectionTestUtils.setField(user, "id", 1L);
+        Long userId = 1L;
+        Long postId = 1L;
 
-        Post post = Post.create("게시글 제목", "게시글 내용", user);
-        ReflectionTestUtils.setField(post, "id", 1L);
+        User user = User.create(
+                "test@test.com",
+                "테스트유저",
+                "password123"
+        );
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        Post post = Post.create(
+                "게시글 제목",
+                "게시글 내용",
+                user
+        );
+        ReflectionTestUtils.setField(post, "id", postId);
 
         Like like = Like.create(user, post);
         ReflectionTestUtils.setField(like, "id", 1L);
 
-        given(likeRepository.findByUserIdAndPostId(1L, 1L))
+        given(likeRepository.findByUserIdAndPostId(userId, postId))
                 .willReturn(Optional.of(like));
 
         // When
-        likeService.deleteLikeByUserAndPost(1L, 1L);
+        likeService.deleteLikeByUserAndPost(
+                userId,
+                postId
+        );
 
         // Then
-        verify(likeRepository, times(1)).findByUserIdAndPostId(1L, 1L);
-        verify(likeRepository, times(1)).delete(like);
+        verify(likeRepository, times(1))
+                .findByUserIdAndPostId(userId, postId);
+
+        verify(likeRepository, times(1))
+                .delete(like);
     }
 }
