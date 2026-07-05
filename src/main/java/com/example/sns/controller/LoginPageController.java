@@ -6,6 +6,7 @@ import com.example.sns.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,20 +19,18 @@ public class LoginPageController {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
 
-    // 로그인 화면 보여주기
     @GetMapping("/login")
     public String loginPage() {
         return "login";
     }
 
-    // 회원가입 화면 보여주기
     @GetMapping("/signup")
     public String signupPage() {
         return "signup";
     }
 
-    // 로그인 처리
     @PostMapping("/login")
     public String login(
             @RequestParam String email,
@@ -47,7 +46,7 @@ public class LoginPageController {
             return "login";
         }
 
-        if (!user.getPassword().equals(password)) {
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             model.addAttribute("error", "비밀번호가 일치하지 않습니다.");
             return "login";
         }
@@ -70,7 +69,6 @@ public class LoginPageController {
         return "redirect:/home";
     }
 
-    // 로그아웃 처리
     @PostMapping("/logout")
     public String logout(HttpServletResponse response) {
         Cookie cookie = new Cookie("accessToken", "");

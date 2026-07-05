@@ -6,6 +6,7 @@ import com.example.sns.entity.User;
 import com.example.sns.exception.CustomException;
 import com.example.sns.exception.ErrorCode;
 import com.example.sns.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,9 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder
+    ) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // 회원가입
@@ -26,10 +32,13 @@ public class UserService {
             throw new CustomException(ErrorCode.EMAIL_DUPLICATED);
         }
 
+        String encodedPassword =
+                passwordEncoder.encode(request.password());
+
         User user = User.create(
                 request.email(),
                 request.nickname(),
-                request.password()
+                encodedPassword
         );
 
         User savedUser = userRepository.save(user);
