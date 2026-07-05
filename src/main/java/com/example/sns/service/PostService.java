@@ -7,6 +7,8 @@ import com.example.sns.entity.Post;
 import com.example.sns.entity.User;
 import com.example.sns.exception.CustomException;
 import com.example.sns.exception.ErrorCode;
+import com.example.sns.repository.CommentRepository;
+import com.example.sns.repository.LikeRepository;
 import com.example.sns.repository.PostRepository;
 import com.example.sns.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -20,17 +22,28 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final LikeRepository likeRepository;
+    private final CommentRepository commentRepository;
 
-    public PostService(PostRepository postRepository, UserRepository userRepository) {
+    public PostService(
+            PostRepository postRepository,
+            UserRepository userRepository,
+            LikeRepository likeRepository,
+            CommentRepository commentRepository
+    ) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
+        this.likeRepository = likeRepository;
+        this.commentRepository = commentRepository;
     }
 
     // 게시글 작성
     @Transactional
     public PostResponse createPost(Long userId, PostCreateRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.USER_NOT_FOUND)
+                );
 
         Post post = Post.create(
                 request.title(),
@@ -52,18 +65,28 @@ public class PostService {
     // 게시글 조회
     public PostResponse getPost(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.POST_NOT_FOUND)
+                );
 
         return PostResponse.from(post);
     }
 
     // 게시글 수정
     @Transactional
-    public PostResponse updatePost(Long postId, PostUpdateRequest request) {
+    public PostResponse updatePost(
+            Long postId,
+            PostUpdateRequest request
+    ) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.POST_NOT_FOUND)
+                );
 
-        post.update(request.title(), request.content());
+        post.update(
+                request.title(),
+                request.content()
+        );
 
         return PostResponse.from(post);
     }
@@ -72,8 +95,15 @@ public class PostService {
     @Transactional
     public void deletePost(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.POST_NOT_FOUND)
+                );
 
+        // 게시글을 참조하는 데이터부터 삭제
+        likeRepository.deleteAllByPostId(postId);
+        commentRepository.deleteAllByPostId(postId);
+
+        // 마지막에 게시글 삭제
         postRepository.delete(post);
     }
 }

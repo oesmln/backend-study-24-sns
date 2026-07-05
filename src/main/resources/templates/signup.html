@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko"
-      xmlns:th="http://www.thymeleaf.org">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNS 로그인</title>
+    <title>SNS 회원가입</title>
 
     <style>
         * {
@@ -21,7 +20,7 @@
             font-family: Arial, sans-serif;
         }
 
-        .login-box {
+        .signup-box {
             width: 360px;
             padding: 32px;
             background: white;
@@ -75,43 +74,47 @@
             background: #444;
         }
 
-        .error-message {
+        #message {
+            min-height: 20px;
             margin-top: 14px;
             text-align: center;
-            color: #d03035;
             font-size: 14px;
         }
 
-        .signup-link {
+        .login-link {
             margin-top: 18px;
             text-align: center;
             font-size: 14px;
         }
 
-        .signup-link a {
+        .login-link a {
             color: #3366cc;
             text-decoration: none;
-            font-weight: 600;
-        }
-
-        .signup-link a:hover {
-            text-decoration: underline;
         }
     </style>
 </head>
 
 <body>
-<div class="login-box">
-    <h1>로그인</h1>
+<div class="signup-box">
+    <h1>회원가입</h1>
 
-    <form action="/login" method="post">
+    <form id="signupForm">
         <div class="field">
             <label for="email">이메일</label>
             <input
                     type="email"
                     id="email"
-                    name="email"
                     placeholder="이메일을 입력해주세요."
+                    required
+            >
+        </div>
+
+        <div class="field">
+            <label for="nickname">닉네임</label>
+            <input
+                    type="text"
+                    id="nickname"
+                    placeholder="닉네임을 입력해주세요."
                     required
             >
         </div>
@@ -121,27 +124,75 @@
             <input
                     type="password"
                     id="password"
-                    name="password"
                     placeholder="비밀번호를 입력해주세요."
                     required
             >
         </div>
 
-        <button type="submit">로그인</button>
+        <button type="submit">가입하기</button>
     </form>
 
-    <p
-            class="error-message"
-            th:if="${error}"
-            th:text="${error}"
-    >
-        로그인 오류 메시지
-    </p>
+    <p id="message"></p>
 
-    <div class="signup-link">
-        아직 회원이 아니신가요?
-        <a href="/signup">회원가입</a>
+    <div class="login-link">
+        이미 계정이 있으신가요?
+        <a href="/login">로그인</a>
     </div>
 </div>
+
+<script>
+    const signupForm = document.getElementById("signupForm");
+    const message = document.getElementById("message");
+
+    signupForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const email = document.getElementById("email").value.trim();
+        const nickname = document.getElementById("nickname").value.trim();
+        const password = document.getElementById("password").value;
+
+        message.textContent = "";
+
+        try {
+            const response = await fetch("/users", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email,
+                    nickname,
+                    password
+                })
+            });
+
+            if (response.ok) {
+                alert("회원가입이 완료되었습니다.");
+                window.location.href = "/login";
+                return;
+            }
+
+            let errorMessage = "회원가입에 실패했습니다.";
+
+            try {
+                const errorData = await response.json();
+
+                if (errorData.message) {
+                    errorMessage = errorData.message;
+                }
+            } catch (error) {
+                console.error("오류 응답을 읽지 못했습니다.", error);
+            }
+
+            message.textContent = errorMessage;
+            message.style.color = "red";
+        } catch (error) {
+            console.error(error);
+
+            message.textContent = "서버와 통신할 수 없습니다.";
+            message.style.color = "red";
+        }
+    });
+</script>
 </body>
 </html>
