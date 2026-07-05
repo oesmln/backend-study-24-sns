@@ -25,6 +25,12 @@ public class LoginPageController {
         return "login";
     }
 
+    // 회원가입 화면 보여주기
+    @GetMapping("/signup")
+    public String signupPage() {
+        return "signup";
+    }
+
     // 로그인 처리
     @PostMapping("/login")
     public String login(
@@ -53,22 +59,30 @@ public class LoginPageController {
 
         Cookie cookie = new Cookie("accessToken", accessToken);
 
-        // JavaScript에서 쿠키에 접근하지 못하도록 설정
         cookie.setHttpOnly(true);
-
-        // 사이트 내 대부분의 요청에 쿠키를 전송하고,
-        // 외부 사이트에서 발생한 위험한 요청에는 쿠키 전송을 제한
         cookie.setAttribute("SameSite", "Lax");
-
-        // 현재는 HTTP 환경이므로 false
-        // HTTPS를 적용한 뒤에는 true로 변경
         cookie.setSecure(false);
-
         cookie.setPath("/");
         cookie.setMaxAge(60 * 60);
 
         response.addCookie(cookie);
 
         return "redirect:/home";
+    }
+
+    // 로그아웃 처리
+    @PostMapping("/logout")
+    public String logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("accessToken", "");
+
+        cookie.setHttpOnly(true);
+        cookie.setAttribute("SameSite", "Lax");
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+
+        response.addCookie(cookie);
+
+        return "redirect:/login";
     }
 }

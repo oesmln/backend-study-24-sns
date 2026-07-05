@@ -12,20 +12,25 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final AuthInterceptor authInterceptor;
 
-    // Interceptor 적용 경로 설정
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
+                        "/",
                         "/login",
+                        "/logout",
+                        "/signup",
                         "/users",
+                        "/users/**",
                         "/auth/login",
                         "/auth/reissue",
                         "/h2-console/**",
                         "/css/**",
                         "/js/**",
-                        "/images/**"
+                        "/images/**",
+                        "/favicon.ico",
+                        "/error"
                 );
     }
 }
